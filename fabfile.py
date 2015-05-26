@@ -40,10 +40,11 @@ def install(use_defaults=False):
     get_os_version()
     initialize(use_defaults)
     initialize_server(use_defaults)
-    initialize_db(use_defaults)
     create_install_dir()
-    initialize_ssl(use_defaults)
     install_dependencies()
+    service_start("postgresql")
+    initialize_db(use_defaults)
+    initialize_ssl(use_defaults)
     create_db()
     create_python_virtualenv()
     install_python_requirements()
@@ -130,6 +131,11 @@ def initialize_server(use_defaults=False):
             server_name = prompt('Server name: ', default=env['host'])
         else:
             server_name = env['host']
+
+
+def service_start(service_name):
+    with hide('everything'):
+        cmd('service %s start' % service_name)
 
 
 def initialize_db(use_defaults=False):
@@ -294,6 +300,7 @@ def edit_settings():
         cmd('sed -i \'s#<password>#%s#g\' settings.py' % db_pass)
         cmd('sed -i \'s#<domain>#%s#g\' settings.py' % server_name)
         cmd('sed -i \'s#DEBUG = True#DEBUG = False#g\' settings.py')
+        cmd('echo "POSTGIS_VERSION = (2, 1)" >> settings.py')
 
 
 def install_redis():
@@ -316,6 +323,7 @@ def sync_data(update=None):
         _set_log_permissions()
         run('workon nodeshot && %s' % sync_command)
         # only on install
+        service_start("redis-server")
         if not update:
             run('workon nodeshot && ./manage.py loaddata initial_data')
 
@@ -391,6 +399,7 @@ def configure_supervisor():
         append(filename='/etc/supervisor/conf.d/celery-beat.conf', text=celerybeat_conf, use_sudo=use_sudo)
 
         _set_log_permissions()
+        service_start("supervisor")
         cmd('supervisorctl update')
 
 
