@@ -26,3 +26,8 @@ wget
 iputils-ping
 host
 traceroute
+python-pip
+python-dev
+wget
+ssh
+libffi-dev
